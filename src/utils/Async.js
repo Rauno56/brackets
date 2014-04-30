@@ -415,6 +415,32 @@ define(function (require, exports, module) {
         
         return deferred.promise();
     }
+    
+    /**
+     * Utility for converting an errback-style method to one that returns a promise; useful for
+     * FileSystem methods. 
+     * The object/method are passed as an object/string pair so that we can
+     * properly call the method without the caller having to deal with "bind" all the time.
+     * @param {Object} obj The object to call the method on.
+     * @param {string} method The name of the errback method. The method should expect the errback
+     *      as its last parameter.
+     * @return {$.Promise} A promise that is resolved with the arguments that were passed to the
+     *      errback (not including the err argument) if err is null, or rejected with the err if
+     *      non-null.
+     */
+    function promisify(obj, method) {
+        var result = new $.Deferred(),
+            args = Array.prototype.slice.call(arguments, 2);
+        args.push(function (err) {
+            if (err) {
+                result.reject(err);
+            } else {
+                result.resolve.apply(result, Array.prototype.slice.call(arguments, 1));
+            }
+        });
+        obj[method].apply(obj, args);
+        return result.promise();
+    }
 
     /**
      * @constructor
@@ -504,5 +530,6 @@ define(function (require, exports, module) {
     exports.waitForAll     = waitForAll;
     exports.ERROR_TIMEOUT  = ERROR_TIMEOUT;
     exports.chain          = chain;
+    exports.promisify      = promisify;
     exports.PromiseQueue   = PromiseQueue;
 });
